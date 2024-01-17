@@ -5,9 +5,11 @@ name = "pypi"
 
 [packages]
 jupyterlab = "*"
+flask-sessioin = "*"
 
 [dev-packages]
 beautifulsoup4 = "*"
+ipykernel = "*"
 
 [requires]
 python_version = "3.8"

@@ -1,0 +1,32 @@
+// based on: https://docs.djangoproject.com/en/3.1/ref/csrf/#ajax
+function getCookie(name) {
+    if (document.cookie !== "") {
+        const cookie = document.cookie
+            .split(";")
+            .map(cookie => cookie.trim())
+            .find(cookie => cookie.substring(0, name.length + 1) === `${name}=`);
+        if (cookie) {
+            return decodeURIComponent(cookie.substring(name.length + 1));
+        }
+    }
+    return null;
+}
+const csrftoken = getCookie("csrftoken");
+export const CSRF_HEADERS = { "X-CSRFToken": csrftoken };
+function isMethodCsrfSafe(method) {
+    // these HTTP methods do not require CSRF protection
+    return ["GET", "HEAD", "OPTIONS", "TRACE"].includes(method);
+}
+// setup ajax sending csrf token
+$.ajaxSetup({
+    beforeSend: function (xhr, settings) {
+        const isMethodSafe = settings.method && isMethodCsrfSafe(settings.method);
+        if (!isMethodSafe && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    },
+});
+export const testable = {
+    getCookie,
+    isMethodCsrfSafe,
+};

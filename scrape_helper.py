@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
-def get_module_links(url, host="https://hpi.de/"):
+def get_module_links(url, host="https://hpi.de"):
     """
     Retrieves all module links from the given url.
     """
@@ -67,9 +67,14 @@ def get_courses(url, host="https://hpi.de/"):
             
             for link in links:
                 href = link.get('href')
+
+                if href.startswith("http"):
+                    # add the course to the list of courses
+                    courses.append(href)
+                else:
+                    # add the course to the list of courses
+                    courses.append(host + href)
                 
-                # add the course to the list of courses
-                courses.append(host + href)
         else:
             print(f"Div with class 'csc-textpic-text' not found for url: {url}.")
     else:

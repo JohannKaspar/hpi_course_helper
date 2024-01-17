@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quote
+{% endblock %}
+
+{% block main %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Stock</th>
+                <th>Price</th>
+                <th>Activity</th>
+                <th>Shares</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in transactions %}
+                <tr>
+                    <td>{{ record.get("symbol") }}</td>
+                    <td>{{ record.get("price") | usd }}</td>
+                    <td>{{ record.get("activity") }}</td>
+                    <td>{{ record.get("shares") }}</td>
+                    <td>{{ record.get("time") }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

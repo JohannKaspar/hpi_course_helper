@@ -1,8 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+from tenacity import retry, stop_after_attempt, wait_exponential
+import json
+from collections import defaultdict
+from helpers import courses
 
-class Module:
+class CourseModule:
     """
     Class to represent a module.
     """
@@ -16,56 +20,94 @@ class Module:
         self._lecturers = None
         self._evaluation_metrics = None
         self._general_info = None
+        self.soup = None
 
-        self.get_landing_page_information()
-    
+
+    @retry(
+        stop=stop_after_attempt(4), # Maximum number of retries
+        wait=wait_exponential(multiplier=1, min=1, max=60) # Exponential backoff
+    )
+    def make_request(self):
+        """
+        Sends a GET request to the given url and returns the response.
+        """
+        return requests.get(self._url)
+        
+
+    def get_soup(self):
+        """
+        Creates the BeautifulSoup object of the module's landing page.
+        """
+        try:
+            response = self.make_request()
+            self.soup = BeautifulSoup(response.text, 'html.parser')
+            # We need only the content of div tx-ciuniversity-course
+            self.soup = self.soup.find('div', class_='tx-ciuniversity-course')
+        except requests.exceptions.RequestException as e:
+            print("FAILED:", e)
+        
+
     def get_landing_page_information(self):
-        # Send a GET request to the given url
-        response = requests.get(self._url)
+        if not self.soup:
+            self.get_soup()
 
-        # Check if the response status code is 200 (OK)
-        if response.status_code == 200:
-            # Parse the HTML content of the response using BeautifulSoup
-            soup = BeautifulSoup(response.text, 'html.parser')
+        # Parse general information
+        self.get_general_info()
 
-            # Use only the content of div tx-ciuniversity-course
-            soup = soup.find('div', class_='tx-ciuniversity-course')
-            
-            sections = {"_general_info": "Allgemeine Information",
-                         "_description": "Beschreibung",
-                         "_prerequisites": "Voraussetzungen",
-                         "_literature": "Literatur",
-                         "_grading": "Leistungserfassung"}
-            
-            # Iterate over the sections and parse the content
-            for key, header in sections.items():
-                self.parse_subtopic(soup, key, header)
+        # Parse the module groups
+        self.get_module_groups()
 
-            # Parse the website URL
-            self.parse_website_url(soup)
+        # Parse general description, prerequisites, literature, grading, dates
+        self.get_subtopic_content()
 
-            # Parse lecturer information
-            self.parse_lecturers(soup)
+        # Parse the website URL
+        self.get_website_url()
 
-            # Parse title
-            self._title = soup.find('h1').text.strip()
+        # Parse lecturer information
+        self.get_lecturers()
 
+        # Parse title
+        # match everything before " (W" or " (S"
+        match = re.match("(.*) \(W|S", "Applied Probabilistic Machine Learning (WS 2023/24")
+        title = self.soup.find('h1').text.strip()
+        self._title = title
+    
+
+    def get_evaluation_metrics(self):
+        # create a soup from the stored HTML
+        evaluation_metrics = json.load(open("course_evaluation.json", "r"))
+
+        # get the evaluation metrics for the module
+        evaluation_metrics = evaluation_metrics.get(self._title.lower())
+
+        if evaluation_metrics:
+            self._evap_grade: float = evaluation_metrics.get("grade")
+            self._evap_semester: str = evaluation_metrics.get("semester")
         else:
-            print(f"Failed to retrieve the webpage {self._url}. Status code:", response.status_code)
+            self._evap_grade: float = 0.0
+            self._evap_semester: str = ""
 
 
-    def parse_subtopic(self, soup, key, topic):
+    def get_subtopic_content(self):
+        sections = {
+            "_description": "Beschreibung",
+            "_prerequisites": "Voraussetzungen",
+            "_literature": "Literatur",
+            "_grading": "Leistungserfassung",
+            "_dates": "Termine"
+            }
+        
+        # Iterate over the sections and parse the content
+        for key, header in sections.items():
             # Find the h2 tag with text "Beschreibung" or "Description"
             # 't and' included to prevent error when t is None
-            topic_h2 = soup.find('h2', string=topic)
+            h2 = self.soup.find('h2', string=header)
 
             # If the h2 tag was found
-            if topic_h2:
-
+            if h2:
                 content = ""
-
                 # Iterate over the elements between the two h2 tags
-                for element in topic_h2.next_siblings:
+                for element in h2.next_siblings:
                     # if the element is of type h2, stop reading
                     if element.name == "h2":
                         break
@@ -74,7 +116,7 @@ class Module:
                         content += '\n' + element.text.strip()
                     # if the element is of type ul, add the text to the description
                     elif element.name == 'ul':
-                        content += '\n' + self.parse_list(element)
+                        content += '\n' + self.parse_list_to_string(element)
 
                     # TODO check how this works with an example page like "https://hpi.de/studium/im-studium/lehrveranstaltungen/digital-health-ma/lehrveranstaltung/wise-23-24-3860-applied-probabilistic-machine-learning.html"
                     elif element.name == "li":
@@ -83,10 +125,55 @@ class Module:
                 # Save the description
                 self.__dict__[key] = content.strip()
 
-    def parse_website_url(self, soup):
+
+    def get_general_info(self):
+        h2 = self.soup.find('h2', string="Allgemeine Information")
+        # If the h2 tag was found
+        if h2:
+            content = {}
+            # Iterate over the elements between the two h2 tags
+            for element in h2.next_siblings:
+                if element.name == 'ul':
+                    content.update(self.parse_list_to_dict(element))
+                # if the element is of type h2, stop reading
+                if element.name == "h2":
+                    break
+            # Save the description
+            self.__dict__["_general_info"] = content
+
+    
+    def get_module_groups(self):
+        course_module_groups = []
+        for course_name in list(courses.keys()):
+            # this checks if the course name is on the page of the module
+            course_name_element = self.soup.find("div", class_="tx_dscclipclap_header", string=re.compile(course_name))
+
+            if course_name_element:
+                # get the parent element of the module_course_element
+                module_course_element = course_name_element.parent
+                module_groups_text = self.replace_whitespace(module_course_element.text)
+                # Match all module groups XXXX and subgroups YY which are of type "HPI-XXXX-YY" without the "HPI-" prefix
+                module_groups = re.findall(r"HPI-([A-Z]{2,6})", module_groups_text)
+                subgroups = re.findall(r"HPI-[A-Z]{2,6}-([A-Z]+)", module_groups_text)
+                if module_groups:
+                    for i, module_group in enumerate(module_groups):
+                        if i >= len(subgroups):
+                            subgroup = ""
+                        else:
+                            subgroup = subgroups[i]
+                        # Add the module group to the dictionary
+                        course_module_groups.append((
+                            courses.get(course_name),
+                            module_group,
+                            subgroup))
+    
+        self.__dict__["_module_groups"] = module_groups        
+
+
+    def get_website_url(self):
         # Find the text "Website zum Kurs"
         # re.compile is a workaround to find text embedded in Whitespaces
-        website_text = soup.find(string=re.compile("Website zum Kurs"))
+        website_text = self.soup.find(string=re.compile("Website zum Kurs"))
 
         # Initialize the variable to store the website URL
         website_url = None
@@ -105,10 +192,10 @@ class Module:
         # Add the alternative website URL to the class dictionary
         self._website_url = website_url
 
-    def parse_lecturers(self, soup):
+    def get_lecturers(self):
         # Find the text "Dozent"
         # re.compile is a workaround to find text embedded in Whitespaces
-        lecturer_heading = soup.find(string=re.compile("Dozent"))
+        lecturer_heading = self.soup.find(string=re.compile("Dozent"))
 
         # Initialize the list to store the lecturers
         lecturers = None
@@ -131,7 +218,7 @@ class Module:
         # Write the lecturers to the class dictionary
         self._lecturers = lecturers
     
-    def parse_list(self, ul):
+    def _list(self, ul):
         """
         Parses the content of the list items into a class dictionary.
         """
@@ -147,9 +234,35 @@ class Module:
         """
         Replaces all whitespace characters with a single space.
         """
-        ws_replaced = " ".join(string.split())
-        return ws_replaced.strip()
-        
+        return re.sub(r"\s+", " ", string).strip()
+       
+
+    def parse_list_to_string(self, ul):
+        """
+        Parses the content of the list items into a string.
+        """
+        list_items = ul.find_all('li')
+        list_content = []
+
+        for item in list_items:
+            list_content.append(self.replace_whitespace(item.text.strip()))
+        return "- ".join(list_content)
+
+
+
+    def parse_list_to_dict(self, ul):
+        """
+        Parses the content of the list items into a dictionary.
+        """
+        list_items = ul.find_all('li')
+        list_content = {}
+
+        for item in list_items:
+            li_text = self.replace_whitespace(item.text)
+            list_content[li_text.split(":")[0]] = li_text.split(":")[1].strip()
+        return list_content
+
+
     @property
     def url(self):
         return self._url

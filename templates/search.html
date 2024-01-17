@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Search modules
+{% endblock %}
+
+{% block main %}
+    <form action="/search" method="post">
+        <div class="row text-start">
+            <div class="col-md-2 mb-3">
+                <h3>Study</h3>
+                <input type="checkbox" id="digital_health" name="digital_health" value="digital_health">
+                <label for="digital_health"> Digital Health</label><br>
+                <input type="checkbox" id="cyber_security" name="cyber_security" value="cyber_security">
+                <label for="cyber_security"> Cyber Security </label><br>
+                <input type="checkbox" id="itse_bachelor" name="itse_bachelor" value="itse_bachelor">
+                <label for="itse_bachelor"> IT Systems Engineering</label><br>
+                <input type="checkbox" id="itse_master" name="itse_master" value="itse_master">
+                <label for="itse_master"> IT Systems Engineering</label><br>
+                <input type="checkbox" id="software_systems_engineering" name="software_systems_engineering" value="software_systems_engineering">
+                <label for="software_systems_engineering"> Software Systems Engineering</label><br>
+                <input type="checkbox" id="data_engineering" name="data_engineering" value="data_engineering">
+                <label for="data_engineering"> Data Engineering</label><br>
+            </div>
+            <div class="col-md-2">
+                <h3>Module group</h3>
+                {% for module in module_group or ['SCAD', 'DICR', 'OSIS', 'ITSE', 'APAD', 'SECA', 'SSE', 'CS'] %}
+                    <input type="checkbox" id="{{ module }}" name="{{ module }}" value="{{ module }}">
+                    <label for="{{ module }}"> {{ module.upper() }} </label><br>
+                {% endfor %}
+            </div>
+            <div class="col-md-2">
+                <h3>Credits</h3>
+                <input type="checkbox" id="3" name="3" value="3">
+                <label for="3"> 3 </label><br>
+                <input type="checkbox" id="6" name="6" value="6">
+                <label for="6"> 6 </label><br>
+                <input type="checkbox" id=">6" name=">6" value=">6">
+                <label for=">6"> &gt 6 </label><br>
+            </div>
+            <div class="col-md-2">
+                <h3>EvaP results</h3>
+                <input type="radio" id="1.5" name="evap_max_result" value="1.5">
+                <label for="1.5"> &lt 1.5 </label><br>
+                <input type="radio" id="2" name="evap_max_result" value="2">
+                <label for="2"> &lt 2 </label><br>
+                <input type="radio" id="3" name="evap_max_result" value="3">
+                <label for="3"> &lt 3 </label><br>
+                <input type="radio" id="6" name="evap_max_result" value="6">
+                <label for="6"> irrelevant </label><br>
+            </div>
+            <div class="col-md-2">
+                    <h3>Irrelevant modules</h3>
+                <input type="checkbox" id="exclude_taken" name="exclude_taken" value="exclude_taken">
+                <label for="exclude_taken"> Exclude taken modules </label><br>
+                <input type="checkbox" id="include_relevant_only" name="include_relevant_only" value="include_relevant_only">
+                <label for="include_relevant_only"> Include necessary modules only </label><br>
+            </div>
+            <button class="btn btn-primary col-md-2" type="submit">Find</button>
+        </div>
+    </form>
+    {% if module_display_list|length == 0 %}
+        <div class="row">
+            <div>
+                <h3>No modules found</h3>
+            </div>
+        </div>
+    {% else %}
+        {% for module in module_display_list%}
+            <div class="row">
+                <div>
+                    <a href="{{ module.get('name') }}">
+                        <h3>{{ module.get("name") }}</h3>
+                    </a>
+                    <p>Module group: {{ module.get("module_group") }}</p>
+                    <p>Credits: {{ module.get("credits") }}</p>
+                    <p>EvaP results: {{ module.get("evap_max_result") }}</p>
+                </div>
+            </div>
+        {% endfor %} 
+    {% endif %}
+    
+{% endblock %}

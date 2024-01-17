@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Module
+{% endblock %}
+
+{% block main %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Stock</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, value in module_dict.items() %}
+                <tr>
+                    <td>{{ key }}</td>
+                    <td>{{ value }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
