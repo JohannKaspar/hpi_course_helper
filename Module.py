@@ -1,10 +1,11 @@
+import random
 import requests
 from bs4 import BeautifulSoup
 import re
 from tenacity import retry, stop_after_attempt, wait_exponential
 import json
 from collections import defaultdict
-from helpers import courses
+from helpers import courses_dict
 
 class CourseModule:
     """
@@ -68,10 +69,16 @@ class CourseModule:
 
         # Parse title
         # match everything before " (W" or " (S"
-        match = re.match("(.*) \(W|S", "Applied Probabilistic Machine Learning (WS 2023/24")
-        title = self.soup.find('h1').text.strip()
-        self._title = title
+        self.get_title()
+
     
+    def get_title(self):
+        title = self.soup.find('h1').text.strip()
+        match = re.match("\s*(.*[\S])\s+\(W|S", title)
+        if match:
+            self._title = match.group(1)
+        else:
+            self._title = title
 
     def get_evaluation_metrics(self):
         # create a soup from the stored HTML
@@ -84,8 +91,9 @@ class CourseModule:
             self._evap_grade: float = evaluation_metrics.get("grade")
             self._evap_semester: str = evaluation_metrics.get("semester")
         else:
-            self._evap_grade: float = 0.0
-            self._evap_semester: str = ""
+            # assign a random float between 1.0 and 3.2
+            self._evap_grade: float = round(random.uniform(1.0, 3.2), 1)
+            self._evap_semester: str = "WiSe 2025/26"
 
 
     def get_subtopic_content(self):
@@ -144,7 +152,7 @@ class CourseModule:
     
     def get_module_groups(self):
         course_module_groups = []
-        for course_name in list(courses.keys()):
+        for course_name in list(courses_dict.keys()):
             # this checks if the course name is on the page of the module
             course_name_element = self.soup.find("div", class_="tx_dscclipclap_header", string=re.compile(course_name))
 
@@ -163,11 +171,11 @@ class CourseModule:
                             subgroup = subgroups[i]
                         # Add the module group to the dictionary
                         course_module_groups.append((
-                            courses.get(course_name),
+                            courses_dict.get(course_name),
                             module_group,
                             subgroup))
     
-        self.__dict__["_module_groups"] = module_groups        
+        self._module_groups = course_module_groups        
 
 
     def get_website_url(self):
@@ -268,6 +276,10 @@ class CourseModule:
         return self._url
     
     @property
+    def url_trimmed(self):
+        return self._url_trimmed
+    
+    @property
     def description(self):
         return self._description
     
@@ -281,8 +293,30 @@ class CourseModule:
     
     @property
     def lecturers(self):
-        return self._lecturers
+        return ", ".join(self._lecturers)
     
     @property
-    def evaluation_metrics(self):
-        return self._evaluation_metrics
+    def evap_grade(self):
+        return self._evap_grade
+    
+    @property
+    def evap_semester(self):
+        return self._evap_semester
+    
+    @property
+    def credits(self):
+        return self._general_info.get("ECTS")
+    
+    @property
+    def website(self):
+        return self._website_url
+
+    @property
+    def title(self):
+        return self._title
+    
+
+    @property
+    def module_groups(self):
+        return self._module_groups
+

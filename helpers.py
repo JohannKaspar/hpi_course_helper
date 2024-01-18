@@ -5,7 +5,7 @@ import urllib.parse
 from flask import redirect, render_template, request, session
 from functools import wraps
 
-courses = {
+courses_dict = {
     "IT-Systems Engineering BA": "itse_bachelor",
     "IT-Systems Engineering MA": "itse_master",
     "Digital Health MA": "dh_master",
