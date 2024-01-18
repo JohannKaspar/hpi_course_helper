@@ -24,3 +24,11 @@ CREATE TABLE course_modules (
     FOREIGN KEY (course_abbreviation) REFERENCES courses(abbreviation),
     FOREIGN KEY (module_url_trimmed) REFERENCES modules(url_trimmed)
 );
+
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    username TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    course_abbreviation TEXT,
+    modules_taken TEXT
+);

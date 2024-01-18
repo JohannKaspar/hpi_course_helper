@@ -7,8 +7,9 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
+from helpers import courses_dict
 
-from helpers import apology, login_required, lookup, usd, is_integer
+from helpers import apology, login_required, is_integer
 
 # Configure application
 app = Flask(__name__)
@@ -16,16 +17,13 @@ app = Flask(__name__)
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
-# Custom filter
-app.jinja_env.filters["usd"] = usd
-
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
+db = SQL("sqlite:///hpi_modules.db")
 
 
 @app.after_request
@@ -127,21 +125,7 @@ def logout():
 def index():
     """Show weekly planner"""
     user_id = session["user_id"]
-    cash = db.execute("SELECT cash FROM users WHERE id = ?", user_id)[0]["cash"]
-
-    # holdings is a list of dicts with keys like "symbol", "shares"
-    holdings = db.execute("SELECT symbol, shares FROM (SELECT symbol, SUM(shares) as shares FROM transactions WHERE user_id = ? GROUP BY symbol) WHERE shares != 0;", user_id)
-    grand_value = 0
-    if not holdings == []:
-        for stock in holdings:
-            quote = lookup(stock.get("symbol"))
-            if quote:
-                stock["price"] = quote.get("price")
-                stock["value"] = stock["price"] * stock["shares"]
-                grand_value += stock["value"]
-    cash = db.execute("SELECT cash FROM users WHERE id = ?", user_id)[0]["cash"]
-    grand_value += cash
-    return render_template("index.html", holdings=holdings, cash=cash, grand_value=grand_value)
+    return render_template("index.html")
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -189,35 +173,57 @@ def search():
 
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
-        return render_template("search.html", module_display_list=[])
+        # query for all available module groups
+        module_groups_query_results = db.execute("SELECT DISTINCT module_group FROM course_modules;")
+        module_groups = [row.get("module_group") for row in module_groups_query_results]
+        return render_template("search.html", module_display_list=[], courses_dict=courses_dict, module_groups=module_groups)
     else:
         # Validate user input
-        if not request.form.get("symbol"):
+        """ if not request.form.get("symbol"):
             return apology("must enter a stock")
         elif not request.form.get("shares"):
             return apology("must enter number of shares to buy")
         elif not is_integer(request.form.get("shares")):
             return apology("must enter a whole number of shares > 0")
         elif int(request.form.get("shares")) < 1:
-            return apology("must enter a whole number of shares > 0")
+            return apology("must enter a whole number of shares > 0") """
 
-        symbol = request.form.get("symbol")
-        shares = int(request.form.get("shares"))
-        quote = lookup(request.form.get("symbol"))
-        user_id = session["user_id"]
-        if quote:
-            price = quote["price"]
-            total = price * shares
-            cash = db.execute("SELECT cash FROM users WHERE id = ?", user_id)[0]["cash"]
-            if cash < total:
-                return apology("You can't afford the selected amount of shares")
-            else:
-                db.execute("UPDATE users SET cash = ? WHERE id = ?;", cash - total, user_id)
-                db.execute("INSERT INTO transactions (user_id, symbol, price, shares, time) \
-                    VALUES (?, ?, ?, ?, ?);", user_id, symbol, price, shares, datetime.now())
-            return redirect("/")
-        else:
-            return apology("Stock not found")
+        user_id = session["user_id"]    
+        
+        
+        query_parts = [
+            """SELECT modules.*, GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) as module_group_subgroup_combinations
+            FROM modules
+            JOIN course_modules ON modules.url_trimmed = course_modules.module_url_trimmed
+            JOIN courses ON courses.course_abbreviation = course_modules.course_abbreviation"""
+        ]
+        query_params = []
+        if request.form.getlist("course_checkboxes"):
+            query_parts.append("WHERE")
+            query_parts.append(" OR ".join(["courses.course_abbreviation = ?" for _ in request.form.getlist("course_checkboxes")]))
+            query_params.extend(request.form.getlist("course_checkboxes"))
+        if request.form.get("module_group_checkboxes"):
+            query_parts.append("AND")
+            query_parts.append(" OR ".join(["course_modules.module_group = ?" for _ in request.form.getlist("module_group_checkboxes")]))
+            query_params.extend(request.form.getlist("module_group_checkboxes"))
+        if request.form.get("credits_checkboxes"):
+            query_parts.append("AND")
+            query_parts.append(" OR ".join(["modules.credits = ?" for _ in request.form.getlist("credits_checkboxes")]))
+            query_params.extend(request.form.getlist("credits_checkboxes"))
+        if request.form.get("evap_max_result"):
+            query_parts.append("AND")
+            query_parts.append("modules.evap_grade <= ?")
+            query_params.append(request.form.get("evap_max_result"))
+
+        # TODO implement already taken module filter and necessary modules filter
+        query_parts.append("GROUP BY modules.url_trimmed;")
+        query = " ".join(query_parts)
+        res = db.execute(query, *query_params)
+
+        # query for all available module groups
+        module_groups_query_results = db.execute("SELECT DISTINCT module_group FROM course_modules;")
+        module_groups = [row.get("module_group") for row in module_groups_query_results]
+        return render_template("search.html", module_display_list=res, courses_dict=courses_dict, module_groups=module_groups)
 
 
 @app.route("/taken", methods=["GET"])

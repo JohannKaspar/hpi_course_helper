@@ -1,0 +1,16 @@
+/* Add padding between sections on smaller screens */
+@media (max-width: 768px) { 
+    .row > .col-6 {
+        margin-bottom: 15px;
+    }
+}
+
+label {
+    display: contents!important;
+}
+
+.result-filter-list {
+    max-height: 170px;
+    overflow-y: auto;
+    padding-left: 4px;
+  }

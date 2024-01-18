@@ -14,7 +14,7 @@
         <!-- https://favicon.io/emoji-favicons/money-bag/ -->
         <link href="/static/favicon.ico" rel="icon">
 
-        <link href="/static/styles.css" rel="stylesheet">
+        <link href="/static/custom.css" rel="stylesheet">
 
         <title>HPI Module explorer: {% block title %}{% endblock %}</title>
 
@@ -56,8 +56,12 @@
             </header>
         {% endif %}
 
-        <main class="container-fluid py-5 text-center">
-            {% block main %}{% endblock %}
+        <main>
+            <div id="content" class="p-3 mb-4">
+                <div class="container">
+                    {% block main %}{% endblock %}
+                </div>
+            </div>
         </main>
 
     </body>
