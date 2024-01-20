@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block main %}
+<div class="container">
     <h3>Module Search</h3>
     <div class="card mb-1">
         <div class="card-body">
@@ -67,13 +68,13 @@
     {% if not module_display_list|length == 0 %}
         {% for module in module_display_list%}
             <div class="row">
-                <a href="{{ module.get('url_trimmed') }}" style="text-decoration: none; color: inherit;">
+                <a href="module/{{ module.get('url_trimmed') }}" style="text-decoration: none; color: inherit;">
                     <div class="card mb-1">
                         <div class="card-body">
                             <div id="module_group_badges" class="d-flex flex-row flex-wrap">
                                 {% for submodule_group in module.get('module_group_subgroup_combinations').split(",") %}
                                 <div>
-                                    <span class="badge bg-primary badge-degree mx-1">{{ submodule_group.strip("-") }}</span>
+                                    <span class="badge bg-primary badge-degree me-1">{{ submodule_group.strip("-") }}</span>
                                 </div>
                             {% endfor %}
                             </div>
@@ -86,5 +87,5 @@
             </div>
         {% endfor %} 
     {% endif %}
-    
+</div>
 {% endblock %}

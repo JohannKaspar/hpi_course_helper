@@ -39,3 +39,6 @@ CREATE TABLE user_modules (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (url_trimmed) REFERENCES modules(url_trimmed)
 );
+
+
+

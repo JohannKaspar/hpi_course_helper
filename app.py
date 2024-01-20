@@ -3,7 +3,7 @@ import os
 
 # TODO uninstall cs50 from pip
 from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -235,47 +235,90 @@ def my_modules():
     # get all submodule groups of the user's course
     module_submodule_combinations = db.execute(
         """
-        SELECT module_group, GROUP_CONCAT(DISTINCT submodule_group) AS submodule_groups, COUNT(DISTINCT submodule_group) AS colspan
-        FROM course_modules
-        WHERE course_abbreviation = 'dh_master'
-        GROUP BY module_group;""")
-    ''' # get all submodule groups of the user's course
-    module_submodule_combinations = db.execute("""SELECT DISTINCT course_modules.module_group, course_modules.submodule_group
-                     FROM course_modules
-                     WHERE course_modules.course_abbreviation = 'dh_master';""") 
-    # get the number of submodules per module group
-    module_colspan = defaultdict(int)
-    for row in module_submodule_combinations:
-        module_colspan[row.get("module_group")] += 1'''
+        SELECT 
+            module_group, 
+            GROUP_CONCAT(DISTINCT module_group || '-' || submodule_group) AS module_group_subgroup_combinations, 
+            COUNT(DISTINCT module_group || '-' || submodule_group) AS colspan
+        FROM 
+            course_modules
+        WHERE 
+            course_abbreviation = 'dh_master'
+        GROUP BY 
+            module_group;
+        """)
+        
     
     module_colspan = {row.get("module_group"): row.get("colspan") for row in module_submodule_combinations}
     
     # get the submodule group names
-    subheader = [item for row in module_submodule_combinations for item in row.get("submodule_groups").split(",")]
+    subheader = [item for row in module_submodule_combinations for item in row.get("module_group_subgroup_combinations").split(",")]
 
     # get the user's modules
-    res = db.execute("""SELECT modules.title, modules.credits, course_modules.module_group, course_modules.submodule_group
+    modules_taken = db.execute("""SELECT modules.title, modules.url_trimmed, modules.credits, GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) as module_group_subgroup_combinations
                      FROM modules 
                      JOIN user_modules ON modules.url_trimmed = user_modules.url_trimmed
                      JOIN course_modules ON modules.url_trimmed = course_modules.url_trimmed
                      WHERE user_modules.user_id = ?
-                     AND course_modules.course_abbreviation = 'dh_master';""", session["user_id"])
+                     AND course_modules.course_abbreviation = 'dh_master'
+                     GROUP BY modules.url_trimmed;""", session["user_id"])
 
-    modules_taken = [row.get("url_trimmed") for row in res]
+    table_rows = []
+    for module_taken in modules_taken:
+        credit_cells = ["" for _ in range(len(subheader))]
+        module_title = module_taken.get("title")
+        module_link = "module/" + module_taken.get("url_trimmed")
+        for module_group_subgroup_combination in module_taken.get("module_group_subgroup_combinations").split(","):
+            credit_cells[subheader.index(module_group_subgroup_combination)] = module_taken.get("credits") or "X"
+        table_rows.append((module_title, module_link, credit_cells))
     
-    return render_template("my_modules.html", module_colspan=module_colspan, subheader=subheader, modules_taken=modules_taken)
+    return render_template("my_modules.html", module_colspan=module_colspan, subheader=subheader, table_rows=table_rows)
 
-@app.route("/module")
+@app.route("/module/<url_trimmed>")
 @login_required
-def module():
+def module(url_trimmed):
     """Show detailed module information"""
-    res = db.execute("SELECT * FROM modules WHERE url_trimmed = 'wise-23-24-3847-3d-computer-graphics-extending-the-threejs-framework.html';")
+    res = db.execute(
+        """
+        SELECT modules.*, 
+            CASE WHEN um.enrolled_count > 0 THEN 1 ELSE 0 END AS is_enrolled
+        FROM modules
+        LEFT JOIN (
+            SELECT url_trimmed, COUNT(user_id) AS enrolled_count
+            FROM user_modules
+            WHERE user_id = ?
+            GROUP BY url_trimmed
+        ) AS um ON modules.url_trimmed = um.url_trimmed
+        WHERE modules.url_trimmed = ?;
+        """, session["user_id"], url_trimmed)
     if res:
         module_info = res[0]
     else:
         module_info = {}
+
+    if module_info.get("is_enrolled") == 1:
+        module_info["checkbox_status"] = "checked"
+    else:
+        module_info["checkbox_status"] = None
+    
     return render_template("module.html", module_info=module_info)
     
+
+@app.route('/handle_checkbox', methods=['POST'])
+def handle_checkbox():
+    data = request.json
+    checked = data['checked']
+    url_trimmed = data['url_trimmed']
+    user_id = session["user_id"]
+    try:
+        if checked:
+            db.execute("INSERT INTO user_modules (user_id, url_trimmed) VALUES (?, ?);", user_id, url_trimmed)
+        else:
+            db.execute("DELETE FROM user_modules WHERE user_id = ? AND url_trimmed = ?;", user_id, url_trimmed)
+    except ValueError as e:
+        print(f"An error occurred: {e}")
+    # Process the data
+    return jsonify(success=True)
+
 
 @app.route("/sell", methods=["GET", "POST"])
 @login_required

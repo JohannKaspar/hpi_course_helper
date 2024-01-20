@@ -8,6 +8,10 @@
     <div id="module-info" class="container">
         <div class="d-flex justify-content-between align-items-start mb-1">
             <h3>{{ module_info.get("title") }}</h3>
+            <div>
+                <input type="checkbox" id="enroll_checkbox" name="{{ module_info.get('url_trimmed') }}" {{ module_info.get('checkbox_status') }}>
+                <label for="enroll_checkbox"> Add to my modules </label><br>
+            </div>
             <button class="btn btn-secondary" type="download">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar-event" viewBox="0 0 16 16">
                     <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"></path>
@@ -56,16 +60,18 @@
             <h5 class="card-header">Links</h5>
             <div class="card-body">
                 <p>
-                    <span class="fw-bold">HPI Course site</span>
+                    <span class="fw-bold">HPI Course site: </span>
                     <a href="{{ module_info.get('full_url') }}">{{ module_info.get("full_url") }}</a>
                 </p>
                 {% if module_info.get("website") %}
                     <p>
-                        <span class="fw-bold">Course Website</span>
+                        <span class="fw-bold">Course Website: </span>
                         <a href="{{ module_info.get('website') }}">{{ module_info.get("website") }}</a>
                     </p>
                 {% endif %}
             </div>
         </div>
     </div>
+    <script src="../static/checkbox_listener.js"></script>
 {% endblock %}
+
