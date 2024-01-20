@@ -17,18 +17,25 @@ CREATE TABLE modules (
 
 CREATE TABLE course_modules (
     course_abbreviation TEXT NOT NULL,
-    module_url_trimmed TEXT NOT NULL,
+    url_trimmed TEXT NOT NULL,
     module_group TEXT NOT NULL,
     submodule_group TEXT,
-    PRIMARY KEY (course_abbreviation, module_url_trimmed, module_group, submodule_group),
+    PRIMARY KEY (course_abbreviation, url_trimmed, module_group, submodule_group),
     FOREIGN KEY (course_abbreviation) REFERENCES courses(abbreviation),
-    FOREIGN KEY (module_url_trimmed) REFERENCES modules(url_trimmed)
+    FOREIGN KEY (url_trimmed) REFERENCES modules(url_trimmed)
 );
 
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     username TEXT NOT NULL,
     hash TEXT NOT NULL,
-    course_abbreviation TEXT,
-    modules_taken TEXT
+    course_abbreviation TEXT
+);
+
+CREATE TABLE user_modules (
+    user_id INTEGER NOT NULL,
+    url_trimmed TEXT NOT NULL,
+    PRIMARY KEY (user_id, url_trimmed),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (url_trimmed) REFERENCES modules(url_trimmed)
 );

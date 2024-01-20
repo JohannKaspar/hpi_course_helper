@@ -67,7 +67,7 @@
     {% if not module_display_list|length == 0 %}
         {% for module in module_display_list%}
             <div class="row">
-                <a href="{{ module.get('module_url_trimmed') }}" style="text-decoration: none; color: inherit;">
+                <a href="{{ module.get('url_trimmed') }}" style="text-decoration: none; color: inherit;">
                     <div class="card mb-1">
                         <div class="card-body">
                             <div id="module_group_badges" class="d-flex flex-row flex-wrap">

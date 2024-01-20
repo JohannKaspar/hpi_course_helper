@@ -161,20 +161,17 @@ class CourseModule:
                 module_course_element = course_name_element.parent
                 module_groups_text = self.replace_whitespace(module_course_element.text)
                 # Match all module groups XXXX and subgroups YY which are of type "HPI-XXXX-YY" without the "HPI-" prefix
-                module_groups = re.findall(r"HPI-([A-Z]{2,6})", module_groups_text)
-                subgroups = re.findall(r"HPI-[A-Z]{2,6}-([A-Z]+)", module_groups_text)
-                if module_groups:
-                    for i, module_group in enumerate(module_groups):
-                        if i >= len(subgroups):
-                            subgroup = ""
-                        else:
-                            subgroup = subgroups[i]
+                matches = re.findall(r"HPI-([A-Z]{2,6})(?:-([A-Z]+))?", module_groups_text)
+                if matches:
+                    for module_group, subgroup in matches:
+                        # In some cases the module group is incorrectly formatted as PSK123 instead of PSK-123
+                        if module_group.startswith("PSK") and len(module_group) >= 6 and subgroup == "":
+                                module_group, subgroup = module_group[:3], module_group[3:]
                         # Add the module group to the dictionary
                         course_module_groups.append((
                             courses_dict.get(course_name),
                             module_group,
                             subgroup))
-    
         self._module_groups = course_module_groups        
 
 

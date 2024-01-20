@@ -5,20 +5,67 @@
 {% endblock %}
 
 {% block main %}
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Stock</th>
-                <th>Price</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for key, value in module_dict.items() %}
-                <tr>
-                    <td>{{ key }}</td>
-                    <td>{{ value }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div id="module-info" class="container">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+            <h3>{{ module_info.get("title") }}</h3>
+            <button class="btn btn-secondary" type="download">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar-event" viewBox="0 0 16 16">
+                    <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"></path>
+                    <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"></path>
+                  </svg>
+            </button>
+        </div>        
+        <div class="card mb-1" id="general-content-card">
+            <h5 class="card-header">General Info</h5>
+            <div class="card-body">
+                <div class="row">
+                    <!-- First Column for Credits and EvaP grade -->
+                    <div class="col-12 col-md-6 col-l-4">
+                        <p>
+                            <span class="fw-bold">Credits: </span>
+                            <span>{{ module_info.get("credits") }}</span>
+                        </p>
+                    </div>
+                    <div class="col-12 col-md-6 col-l-4">
+                        <p>
+                            <span class="fw-bold">EvaP grade: </span>
+                            <span>{{ module_info.get("evap_grade") }} ({{module_info.get("evap_semester")}})</span>
+                        </p>
+                    </div>
+                    <!-- Second Column for Lecturers -->
+                    <div class="col-12 col-md-6 col-l-4">
+                        <p>
+                            <span class="fw-bold">Lecturers: </span>
+                            {% if module_info.get("lecturers") %}
+                                <span>{{ ", ".join(module_info.get("lecturers").strip("[]").split("', '"))}}</span>
+                            {% else %}
+                                <span>were not found</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-1" id="description-card">
+            <h5 class="card-header">Course Description</h5>
+            <div class="card-body">
+                <p>{{ module_info.get("module_description") }}</p>
+            </div>
+        </div>
+        <div class="card mb-1" id="link-card">
+            <h5 class="card-header">Links</h5>
+            <div class="card-body">
+                <p>
+                    <span class="fw-bold">HPI Course site</span>
+                    <a href="{{ module_info.get('full_url') }}">{{ module_info.get("full_url") }}</a>
+                </p>
+                {% if module_info.get("website") %}
+                    <p>
+                        <span class="fw-bold">Course Website</span>
+                        <a href="{{ module_info.get('website') }}">{{ module_info.get("website") }}</a>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 {% endblock %}

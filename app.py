@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 
 # TODO uninstall cs50 from pip
@@ -194,7 +195,7 @@ def search():
         query_parts = [
             """SELECT modules.*, GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) as module_group_subgroup_combinations
             FROM modules
-            JOIN course_modules ON modules.url_trimmed = course_modules.module_url_trimmed
+            JOIN course_modules ON modules.url_trimmed = course_modules.url_trimmed
             JOIN courses ON courses.course_abbreviation = course_modules.course_abbreviation"""
         ]
         query_params = []
@@ -226,35 +227,55 @@ def search():
         return render_template("search.html", module_display_list=res, courses_dict=courses_dict, module_groups=module_groups)
 
 
-@app.route("/taken", methods=["GET"])
+@app.route("/my_modules", methods=["GET"])
 @login_required
-def taken():
+def my_modules():
     """Show all modules taken"""
 
-    #modules_taken = db.execute("SELECT * FROM transactions WHERE user_id = ?;", session["user_id"])
+    # get all submodule groups of the user's course
+    module_submodule_combinations = db.execute(
+        """
+        SELECT module_group, GROUP_CONCAT(DISTINCT submodule_group) AS submodule_groups, COUNT(DISTINCT submodule_group) AS colspan
+        FROM course_modules
+        WHERE course_abbreviation = 'dh_master'
+        GROUP BY module_group;""")
+    ''' # get all submodule groups of the user's course
+    module_submodule_combinations = db.execute("""SELECT DISTINCT course_modules.module_group, course_modules.submodule_group
+                     FROM course_modules
+                     WHERE course_modules.course_abbreviation = 'dh_master';""") 
+    # get the number of submodules per module group
+    module_colspan = defaultdict(int)
+    for row in module_submodule_combinations:
+        module_colspan[row.get("module_group")] += 1'''
     
-    return render_template("taken.html")
+    module_colspan = {row.get("module_group"): row.get("colspan") for row in module_submodule_combinations}
+    
+    # get the submodule group names
+    subheader = [item for row in module_submodule_combinations for item in row.get("submodule_groups").split(",")]
+
+    # get the user's modules
+    res = db.execute("""SELECT modules.title, modules.credits, course_modules.module_group, course_modules.submodule_group
+                     FROM modules 
+                     JOIN user_modules ON modules.url_trimmed = user_modules.url_trimmed
+                     JOIN course_modules ON modules.url_trimmed = course_modules.url_trimmed
+                     WHERE user_modules.user_id = ?
+                     AND course_modules.course_abbreviation = 'dh_master';""", session["user_id"])
+
+    modules_taken = [row.get("url_trimmed") for row in res]
+    
+    return render_template("my_modules.html", module_colspan=module_colspan, subheader=subheader, modules_taken=modules_taken)
 
 @app.route("/module")
 @login_required
-def show_module_details():
+def module():
     """Show detailed module information"""
-    example_module_dict = {
-        '_url': 'https://hpi.de//studium/im-studium/lehrveranstaltungen/it-systems-engineering-ba/lehrveranstaltung/wise-23-24-3847-3d-computer-graphics-extending-the-threejs-framework.html',
-        '_url_trimmed': 'wise-23-24-3847-3d-computer-graphics-extending-the-threejs-framework.html',
-        '_title': '3D Computer Graphics: Extending the Three.js Framework (Wintersemester 2023/2024)',
-        '_description': 'Im Bereich der 3D-Computergrafik ist die Open Source Bbliothek THREE.js ein langjährig etabliertes Projekt, welches als Computergrafik-Middleware in der Demo-Szene und auch in der Industrie eine oft genutzte Software-Komponente für die Darstellung von 3D Szenen ist. Diese zentrale Rolle verdankt die Blibliothek der effektiven Abstraktion der Konzepte, Verfahren und Techniken der 3D-Computergrafik, sowie einer großen Bandbreite an Beispielen und einer großen, aktiven Community.\nIm Rahmen des Seminars werden in Kleinst- und Kleingruppen (1-2 Studierende) verschiedene Themen im Kontext der Bibliothek THREE.js bearbeitet.\nZiel ist es, sich ein computergrafisches Thematheoretisch zu erschließen und softwaretechnisch mit THREE.js als ein Prototyp umzusetzen. Über die Ergebnisse wird im Rahmen eines Vortrags und einem Demonstrator (Live-Demo, Webseite, Video) berichtet.\nBeispiele für Themenbereiche:\n- Mesh-freie Geometrierepräsentationen, wie z.B. Signed Distance Fields für 3D Font Rendering und 3D Punktwolken\n- Parametrisierte Geometrien, wie z.B. Blobs und Superquadriken\n- Algorithmische Geometrie, wie z.B. Triangulierung, Hüllkörper, Skeletons oder progressive Meshes\n- Navigationstechniken, wie z.B. eine World-in-Hand Navigation\n- 3D Glyphen für z.B. Informationsvisualisierung',
-        '_dates': None,
-        '_rooms': None,
-        '_lecturers': ['Prof. Dr. Jürgen Döllner', 'Willy Scheibel', 'Daniel Atzberger'],
-        '_evaluation_metrics': None,
-        '_general_info': '- Semesterwochenstunden: 4\n- ECTS: 6\n- Benotet: Ja\n- Einschreibefrist: 01.10.2023 - 03.11.2023\n- Lehrform: Seminar / Projekt\n- Belegungsart: Wahlpflichtmodul\n- Lehrsprache: Deutsch\n- Maximale Teilnehmerzahl: 12',
-        '_prerequisites': 'Das Seminar richtet sich an Studierende ab dem 5. Fachsemester. Es werden grundlegende Programmierkenntnisse und -techniken, sowie Grundlagen der 3D-Computergrafik vorausgesetzt, wie sie unter anderem in den Lehrveranstaltungen Programmiertechnik I, Programmiertechnik II, Softwarearchitekturen, Softwaretechnik I und 3D-Computergrafik I vermittelt werden.\nDurch die Orientierung aller Themen an die 3D-Computergrafik-Bibliothek THREE.js sind auch Grundkenntnisse in JavaScript bzw. TypeScript, CSS und HTML gefordert, wobei diese Grundkenntnisse auch im Rahmen des Seminars erarbeitet werden können.',
-        '_literature': 'Literatur wird themenspezifisch ausgegeben.',
-        '_grading': 'Für eine erfolgreiche Bearbeitung des Seminars müssen sowohl ein technischer Prototyp erarbeitet werden als auch die Fortschritte und Ergebnisse in Form von einem Vortrag, einer Webseite und einem Video dokumentiert und präsentiert werden.\nDie Endnote setzt sich wie folgt zusammen:\n- 70% Prototyp und Projektbearbeitung\n- 20% Endvortrag (25 Minuten)\n- 10% Projektwebseite und -video',
-        '_website_url': None
-    }
-    return render_template("module.html", module_dict=example_module_dict)
+    res = db.execute("SELECT * FROM modules WHERE url_trimmed = 'wise-23-24-3847-3d-computer-graphics-extending-the-threejs-framework.html';")
+    if res:
+        module_info = res[0]
+    else:
+        module_info = {}
+    return render_template("module.html", module_info=module_info)
+    
 
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
