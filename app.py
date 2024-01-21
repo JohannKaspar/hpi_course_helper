@@ -121,13 +121,6 @@ def logout():
     # Redirect user to login form
     return redirect("/")
 
-@app.route("/")
-@login_required
-def index():
-    """Show weekly planner"""
-    user_id = session["user_id"]
-    return render_template("index.html")
-
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
@@ -189,9 +182,6 @@ def search():
         elif int(request.form.get("shares")) < 1:
             return apology("must enter a whole number of shares > 0") """
 
-        user_id = session["user_id"]    
-        
-        
         query_parts = [
             """SELECT modules.*, GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) as module_group_subgroup_combinations
             FROM modules
@@ -227,7 +217,7 @@ def search():
         return render_template("search.html", module_display_list=res, courses_dict=courses_dict, module_groups=module_groups)
 
 
-@app.route("/my_modules", methods=["GET"])
+@app.route("/", methods=["GET"])
 @login_required
 def my_modules():
     """Show all modules taken"""
@@ -246,13 +236,10 @@ def my_modules():
         GROUP BY 
             module_group;
         """)
-        
     
     module_colspan = {row.get("module_group"): row.get("colspan") for row in module_submodule_combinations}
-    
     # get the submodule group names
     subheader = [item for row in module_submodule_combinations for item in row.get("module_group_subgroup_combinations").split(",")]
-
     # get the user's modules
     modules_taken = db.execute("""SELECT modules.title, modules.url_trimmed, modules.credits, GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) as module_group_subgroup_combinations
                      FROM modules 
@@ -270,7 +257,6 @@ def my_modules():
         for module_group_subgroup_combination in module_taken.get("module_group_subgroup_combinations").split(","):
             credit_cells[subheader.index(module_group_subgroup_combination)] = module_taken.get("credits") or "X"
         table_rows.append((module_title, module_link, credit_cells))
-    
     return render_template("my_modules.html", module_colspan=module_colspan, subheader=subheader, table_rows=table_rows)
 
 @app.route("/module/<url_trimmed>")
