@@ -1,16 +1,12 @@
 from collections import defaultdict
-import os
-
 # TODO uninstall cs50 from pip
 from cs50 import SQL
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_session import Session
-from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
-from helpers import courses_dict
-
-from helpers import apology, login_required, is_integer
+from helpers import courses_dict, apology, login_required, is_integer
+from utils.filters import unique_list
 
 # Configure application
 app = Flask(__name__)
@@ -22,6 +18,8 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
+
+app.jinja_env.filters['unique_list'] = unique_list
 
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///hpi_modules.db")
@@ -214,10 +212,6 @@ def search():
             JOIN courses ON courses.course_abbreviation = course_modules.course_abbreviation"""
         ]
         query_params = []
-        if request.form.getlist("course_checkboxes"):
-            query_parts.append("WHERE")
-            query_parts.append(" OR ".join(["courses.course_abbreviation = ?" for _ in request.form.getlist("course_checkboxes")]))
-            query_params.extend(request.form.getlist("course_checkboxes"))
         if request.form.get("module_group_checkboxes"):
             query_parts.append("AND")
             query_parts.append(" OR ".join(["course_modules.module_group = ?" for _ in request.form.getlist("module_group_checkboxes")]))
@@ -237,7 +231,14 @@ def search():
         res = db.execute(query, *query_params)
 
         # query for all available module groups
-        module_groups_query_results = db.execute("SELECT DISTINCT module_group FROM course_modules;")
+        module_groups_query_results = db.execute(
+            """
+            SELECT DISTINCT module_group 
+            FROM course_modules 
+            JOIN users
+                ON course_modules.course_abbreviation = users.course_abbreviation
+            WHERE users.id = ?
+            ORDER BY module_group;""", session["user_id"])
         module_groups = [row.get("module_group") for row in module_groups_query_results]
         return render_template("search.html", module_display_list=res, courses_dict=courses_dict, module_groups=module_groups)
 

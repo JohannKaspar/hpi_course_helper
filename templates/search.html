@@ -72,7 +72,7 @@
                     <div class="card mb-1">
                         <div class="card-body">
                             <div id="module_group_badges" class="d-flex flex-row flex-wrap">
-                                {% for submodule_group in module.get('module_group_subgroup_combinations').split(",") %}
+                                {% for submodule_group in module.get('module_group_subgroup_combinations')|unique_list %}
                                 <div>
                                     <span class="badge bg-primary badge-degree me-1">{{ submodule_group.strip("-") }}</span>
                                 </div>
