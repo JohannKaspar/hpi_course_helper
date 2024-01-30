@@ -1,0 +1,30 @@
+<!-- This page can be used to modify user settings, e. g. the selected course. -->
+{% extends "layout.html" %}
+
+{% block title %}
+    Profile
+{% endblock %}
+
+{% block main %}
+<div id="module-info" class="container">
+    <div class="card mb-1" id="general-content-card">
+        <div class="card-body">
+            <!-- Radio selectors for available courses -->
+            <form action="/profile" method="post">
+                <h4>Selected Course</h4>
+                <div id="course_selection" class="mb-3">
+                    {% for course, abbreviation in courses_dict.items() %}
+                        <div>
+                            <input type="radio" id="{{ abbreviation }}" name="course_checkboxes" value="{{ abbreviation }}" {{'checked' if selected_course == abbreviation else None}}>
+                            <label for="{{ abbreviation }}"> {{ course }} </label><br>
+                        </div>
+                    {% endfor %}
+                </div> 
+                <div>
+                    <button type="submit" class="btn btn-dark">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>        
+</div>
+{% endblock %}

@@ -11,7 +11,7 @@
         <div class="card-body">
             <form action="/search" method="post">
                 <div class="row">
-                    <div class="col-6 col-sm-6 col-md-4">
+                    <!-- <div class="col-6 col-sm-6 col-md-4">
                         <h5>Study</h5>
                         <div id="course_selection" class="result-filter-list">
                             {% for course, abbreviation in courses_dict.items() %}
@@ -21,35 +21,35 @@
                                 </div>
                             {% endfor %}
                         </div>  
-                    </div>
+                    </div> -->
                     <div class="col-6 col-sm-4 col-md">
                         <h5>Module group</h5>
                         <div id="module_group_selection" class="result-filter-list">
                             {% for module in module_groups %}
-                                <input type="checkbox" id="{{ module }}" name="module_group_checkboxes" value="{{ module }}">
+                                <input type="checkbox" id="{{ module }}" name="module_group_checkboxes" value="{{ module }}" checked>
                                 <label for="{{ module }}"> {{ module.upper() }} </label><br>
                             {% endfor %}
                         </div>
                     </div>
                     <div class="col-6 col-sm-4 col-md">
                         <h5>Credits</h5>
-                        <input type="checkbox" id="3" name="credits_checkboxes" value="3">
+                        <input type="checkbox" id="3" name="credits_checkboxes" value="3" checked>
                         <label for="3"> 3 </label><br>
-                        <input type="checkbox" id="6" name="credits_checkboxes" value="6">
+                        <input type="checkbox" id="6" name="credits_checkboxes" value="6" checked>
                         <label for="6"> 6 </label><br>
-                        <input type="checkbox" id=">6" name="credits_checkboxes" value=">6">
+                        <input type="checkbox" id=">6" name="credits_checkboxes" value=">6" checked>
                         <label for=">6"> &gt 6 </label><br>
                     </div>
                     <div class="col-6 col-sm-4 col-md">
                         <h5>EvaP results</h5>
-                        <input type="radio" id="1.5" name="evap_max_result" value="1.5">
-                        <label for="1.5"> &lt 1.5 </label><br>
-                        <input type="radio" id="2" name="evap_max_result" value="2">
-                        <label for="2"> &lt 2 </label><br>
-                        <input type="radio" id="3" name="evap_max_result" value="3">
-                        <label for="3"> &lt 3 </label><br>
-                        <input type="radio" id="6" name="evap_max_result" value="6">
-                        <label for="6"> irrelevant </label><br>
+                        <input type="radio" id="evap_1.5" name="evap_max_result" value="1.5">
+                        <label for="evap_1.5"> &lt 1.5 </label><br>
+                        <input type="radio" id="evap_2" name="evap_max_result" value="2">
+                        <label for="evap_2"> &lt 2 </label><br>
+                        <input type="radio" id="evap_3" name="evap_max_result" value="3">
+                        <label for="evap_3"> &lt 3 </label><br>
+                        <input type="radio" id="evap_6" name="evap_max_result" value="6" checked>
+                        <label for="evap_6"> irrelevant </label><br>
                     </div>
                     <div class="col-6 col-sm-4 col-md">
                             <h5>Irrelevant modules</h5>
@@ -59,7 +59,7 @@
                         <label for="include_relevant_only"> Include necessary modules only </label><br>
                     </div>
                     <div class="col-6 col-sm-4 col-md d-flex justify-content-center align-items-start">
-                        <button class="btn btn-primary w-100" type="submit">Find</button>
+                        <button class="btn btn-dark w-100" type="submit">Find</button>
                     </div>
                 </div>
             </form>

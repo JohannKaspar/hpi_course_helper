@@ -29,7 +29,7 @@ CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     username TEXT NOT NULL,
     hash TEXT NOT NULL,
-    course_abbreviation TEXT
+    course_abbreviation TEXT DEFAULT 'dh_master'
 );
 
 CREATE TABLE user_modules (

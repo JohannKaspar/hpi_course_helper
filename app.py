@@ -160,6 +160,34 @@ def buy():
             return apology("Stock not found")
         
 
+@app.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    """Change profile settings."""
+
+    if request.method == "GET":
+        res = db.execute("""SELECT * FROM users WHERE id = ?;""", session["user_id"])
+        selected_course = res[0].get("course_abbreviation")
+        username = res[0].get("username")
+        return render_template("profile.html", courses_dict=courses_dict, username=username, selected_course=selected_course)
+    else:
+        # Validate user input
+        if not request.form.get("course_checkboxes"):
+            return apology("must select a course")
+        else:
+            selected_course = request.form.get("course_checkboxes")
+        db.execute("""UPDATE users SET course_abbreviation = ? WHERE id = ?;""", selected_course, session["user_id"])
+        res = db.execute("""SELECT course_abbreviation FROM users WHERE id = ?;""", session["user_id"])
+        selected_course = res[0].get("course_abbreviation")
+        return render_template("profile.html", courses_dict=courses_dict, selected_course=selected_course)
+
+
+@app.route("/about", methods=["GET"])
+def about():
+    """Show information about the app"""
+    return render_template("about.html")
+
+
 @app.route("/search", methods=["GET", "POST"])
 @login_required
 def search():
@@ -168,20 +196,17 @@ def search():
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
         # query for all available module groups
-        module_groups_query_results = db.execute("SELECT DISTINCT module_group FROM course_modules;")
+        module_groups_query_results = db.execute(
+            """
+            SELECT DISTINCT module_group 
+            FROM course_modules 
+            JOIN users
+                ON course_modules.course_abbreviation = users.course_abbreviation
+            WHERE users.id = ?
+            ORDER BY module_group;""", session["user_id"])
         module_groups = [row.get("module_group") for row in module_groups_query_results]
         return render_template("search.html", module_display_list=[], courses_dict=courses_dict, module_groups=module_groups)
     else:
-        # Validate user input
-        """ if not request.form.get("symbol"):
-            return apology("must enter a stock")
-        elif not request.form.get("shares"):
-            return apology("must enter number of shares to buy")
-        elif not is_integer(request.form.get("shares")):
-            return apology("must enter a whole number of shares > 0")
-        elif int(request.form.get("shares")) < 1:
-            return apology("must enter a whole number of shares > 0") """
-
         query_parts = [
             """SELECT modules.*, GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) as module_group_subgroup_combinations
             FROM modules
