@@ -6,6 +6,11 @@
 
 {% block main %}
 <div id="module-info" class="container">
+    <div id="queryAlert" class="alert alert-dismissible fade show" role="alert" style="display: none;">
+        <span id="alertText">Query completed successfully!</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    
     <div class="d-flex justify-content-between align-items-start mb-1">
         <h3>{{ module_info.get("title") }}</h3>
         <div>
@@ -72,5 +77,6 @@
         </div>
     </div>
 </div>
+<script src="../static/checkbox_listener.js"></script>
 {% endblock %}
 
