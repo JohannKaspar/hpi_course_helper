@@ -68,19 +68,19 @@
     {% if not module_display_list|length == 0 %}
         {% for module in module_display_list%}
             <div class="row">
-                <a href="module/{{ module.get('url_trimmed') }}" style="text-decoration: none; color: inherit;">
+                <a href="module/{{ module['url_trimmed'] }}" style="text-decoration: none; color: inherit;">
                     <div class="card mb-1">
                         <div class="card-body">
                             <div id="module_group_badges" class="d-flex flex-row flex-wrap">
-                                {% for submodule_group in module.get('module_group_subgroup_combinations')|unique_list %}
+                                {% for submodule_group in module['module_group_subgroup_combinations']|unique_list %}
                                 <div>
                                     <span class="badge bg-primary badge-degree me-1">{{ submodule_group.strip("-") }}</span>
                                 </div>
                             {% endfor %}
                             </div>
-                            <h3 class="card-title">{{ module.get("title") }}</h3>
-                            <p>Credits: {{ module.get("credits") }}</p>
-                            <p>EvaP results: {{ module.get("evap_grade") }} ({{module.get("evap_semester")}})</p>
+                            <h3 class="card-title">{{ module["title"] }}</h3>
+                            <p>Credits: {{ module["credits"] }}</p>
+                            <p>EvaP results: {{ module["evap_grade"] }} ({{ module["evap_semester"] }})</p>
                             </div>
                     </div>
                 </a>

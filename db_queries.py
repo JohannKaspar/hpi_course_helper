@@ -1,55 +1,94 @@
-from cs50 import SQL
-import requests
+import sqlite3
 
-# Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///hpi_modules.db")
+def to_dict_decorator(func):
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        if result is None:
+            return {}
+        if isinstance(result, list):
+            return [dict(row) for row in result]
+        return dict(result)
+    return wrapper
+
+# Database connection
+def get_db_connection():
+    conn = sqlite3.connect('hpi_modules.db')
+    conn.row_factory = sqlite3.Row  # This enables column access by name: row['column_name']
+    return conn
 
 # Checks if a user for the given name exists
 def user_exists(username):
-    rows = db.execute("SELECT * FROM users WHERE username = ?", username)
-    return len(rows) > 0
+    conn = get_db_connection()
+    user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    return user is not None
 
-# Insert a new user to the 
+# Insert a new user
 def insert_user(username, passwordHash):
-    db.execute("INSERT INTO users (username, hash) VALUES (?, ?);", username, passwordHash)
-    
-# Retrieves user information by user_name
-def get_user_info_by_name(username):
-    rows = db.execute("SELECT * FROM users WHERE username = ?", username)
-    if len(rows) != 1:
-        return None
-    return rows[0]
-    
-# Retrieves user information by user_id
-def get_user_info_by_id(user_id):
-    return db.execute("SELECT * FROM users WHERE id = ?", user_id)[0]
+    conn = get_db_connection()
+    conn.execute("INSERT INTO users (username, hash) VALUES (?, ?)", (username, passwordHash))
+    conn.commit()
+    conn.close()
 
-# Retrieves the course abbreviation for the given user
+# Retrieves user information by username
+@to_dict_decorator
+def get_user_info_by_name(username):
+    conn = get_db_connection()
+    user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    return user
+
+# Retrieves user information by user_id
+@to_dict_decorator
+def get_user_info_by_id(user_id):
+    conn = get_db_connection()
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    conn.close()
+    return user
+
+# Updates the course abbreviation for the given user
 def update_user_course(user_id, selected_course):
-    db.execute("UPDATE users SET course_abbreviation = ? WHERE id = ?;", selected_course, user_id)
-    
-# Retrieves module groups abbreviation for the given user
+    conn = get_db_connection()
+    conn.execute("UPDATE users SET course_abbreviation = ? WHERE id = ?", (selected_course, user_id))
+    conn.commit()
+    conn.close()
+
+# Retrieves module groups for the given user
+@to_dict_decorator
 def get_module_groups_by_user_id(user_id):
-    return db.execute(
+    conn = get_db_connection()
+    module_groups = conn.execute(
         """
-        SELECT DISTINCT module_group 
-        FROM course_modules 
-        JOIN users
-            ON course_modules.course_abbreviation = users.course_abbreviation
-        WHERE users.id = ?
-        ORDER BY module_group;""",
-        user_id
-        )
-    
+        SELECT DISTINCT
+            module_group 
+        FROM
+            course_modules 
+        JOIN
+            users ON course_modules.course_abbreviation = users.course_abbreviation
+        WHERE
+            users.id = ?
+        ORDER BY
+            module_group;
+        """, (user_id,)
+    ).fetchall()
+    conn.close()
+    return module_groups
+
+# Retrieves all modules that match the given filters
+@to_dict_decorator
 def get_filtered_modules(request):
-    # query_parts contains the SQL query parts that are concatenated at the end
     query_parts = [
-        """SELECT modules.*, GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) as module_group_subgroup_combinations
-        FROM modules
-        JOIN course_modules ON modules.url_trimmed = course_modules.url_trimmed
-        JOIN courses ON courses.course_abbreviation = course_modules.course_abbreviation"""
-        ]
-    query_params = [] # contains the parameters for the query
+        """SELECT
+            modules.*,
+            GROUP_CONCAT(course_modules.module_group || '-' || course_modules.submodule_group) AS module_group_subgroup_combinations
+        FROM
+            modules
+        JOIN
+            course_modules ON modules.url_trimmed = course_modules.url_trimmed
+        JOIN
+            courses ON courses.course_abbreviation = course_modules.course_abbreviation"""
+    ]
+    query_params = []
     if request.form.get("module_group_checkboxes"):
         query_parts.append("AND")
         query_parts.append(" OR ".join(["course_modules.module_group = ?" for _ in request.form.getlist("module_group_checkboxes")]))
@@ -62,29 +101,41 @@ def get_filtered_modules(request):
         query_parts.append("AND")
         query_parts.append("modules.evap_grade <= ?")
         query_params.append(request.form.get("evap_max_result"))
-
-    # TODO implement already taken module filter and necessary modules filter
+    
     query_parts.append("GROUP BY modules.url_trimmed;")
     query = " ".join(query_parts)
-    return db.execute(query, *query_params)
+    
+    conn = get_db_connection()
+    modules = conn.execute(query, query_params).fetchall()
+    conn.close()
+    return modules
 
-# Retrieves the module groups for the given user
+# Retrieves module groups for the given user
+@to_dict_decorator
 def get_user_module_groups(user_id):
-    return db.execute(
+    conn = get_db_connection()
+    module_groups = conn.execute(
         """
-        SELECT DISTINCT module_group 
-        FROM course_modules 
-        JOIN users
-            ON course_modules.course_abbreviation = users.course_abbreviation
-        WHERE users.id = ?
-        ORDER BY module_group;""",
-        user_id
-        )
-    
-    
-# Retrieves the module group and submodule group combinations for the given user
+        SELECT DISTINCT
+            module_group 
+        FROM
+            course_modules 
+        JOIN
+            users ON course_modules.course_abbreviation = users.course_abbreviation
+        WHERE
+            users.id = ?
+        ORDER BY
+            module_group;
+        """, (user_id,)
+    ).fetchall()
+    conn.close()
+    return module_groups
+
+# Retrieves all module group and submodule group combinations for the given user
+@to_dict_decorator
 def get_module_submodule_combinations(user_id):
-    return db.execute(
+    conn = get_db_connection()
+    combinations = conn.execute(
         """
         SELECT 
             module_group, 
@@ -92,24 +143,28 @@ def get_module_submodule_combinations(user_id):
             COUNT(DISTINCT module_group || '-' || submodule_group) AS colspan
         FROM 
             course_modules
-        JOIN users
-            ON course_modules.course_abbreviation = users.course_abbreviation
-        WHERE users.id = ?
-        GROUP BY 
+        JOIN
+            users ON course_modules.course_abbreviation = users.course_abbreviation
+        WHERE
+            users.id = ?
+        GROUP BY
             module_group;
-        """,
-        user_id
-        )
-    
-# Retrieves the modules taken by the given user
+        """, (user_id,)
+    ).fetchall()
+    conn.close()
+    return combinations
+
+# Retrieves all modules taken by the given user
+@to_dict_decorator
 def get_modules_taken(user_id):
-    return db.execute(
+    conn = get_db_connection()
+    modules = conn.execute(
         """
         SELECT 
             m.title, 
             m.url_trimmed, 
             m.credits, 
-            GROUP_CONCAT(DISTINCT cm.module_group || '-' || cm.submodule_group ORDER BY cm.module_group, cm.submodule_group) AS module_group_subgroup_combinations
+            GROUP_CONCAT(cm.module_group || '-' || cm.submodule_group) AS module_group_subgroup_combinations
         FROM 
             modules m
         JOIN 
@@ -122,33 +177,47 @@ def get_modules_taken(user_id):
             um.user_id = ?
         GROUP BY 
             m.url_trimmed;
-        """,
-        user_id
-        )
+        """, (user_id,)
+    ).fetchall()
+    conn.close()
+    return modules
 
+# Retrieves detailed information for the given module
+@to_dict_decorator
 def get_module_info(user_id, url_trimmed):
-    res = db.execute(
+    conn = get_db_connection()
+    module_info = conn.execute(
         """
         SELECT modules.*, 
-            CASE WHEN um.enrolled_count > 0 THEN 1 ELSE 0 END AS is_enrolled
-        FROM modules
+            CASE WHEN um.enrolled_count > 0
+                THEN 1
+                ELSE 0
+            END AS is_enrolled
+        FROM
+            modules
         LEFT JOIN (
-            SELECT url_trimmed, COUNT(user_id) AS enrolled_count
-            FROM user_modules
-            WHERE user_id = ?
-            GROUP BY url_trimmed
+            SELECT
+                url_trimmed,
+                COUNT(user_id) AS enrolled_count
+            FROM
+                user_modules
+            WHERE
+                user_id = ?
+            GROUP BY
+                url_trimmed
         ) AS um ON modules.url_trimmed = um.url_trimmed
-        WHERE modules.url_trimmed = ?;
-        """,
-        user_id,
-        url_trimmed
-        )
-    if res:
-        return res[0]
-    return {}
+        WHERE
+            modules.url_trimmed = ?;
+        """, (user_id, url_trimmed)
+    ).fetchone()
+    conn.close()
+    return module_info
 
 def update_module_enrollment(user_id, url_trimmed, checked):
+    conn = get_db_connection()
     if checked:
-        db.execute("INSERT INTO user_modules (user_id, url_trimmed) VALUES (?, ?);", user_id, url_trimmed)
+        conn.execute("INSERT INTO user_modules (user_id, url_trimmed) VALUES (?, ?)", (user_id, url_trimmed))
     else:
-        db.execute("DELETE FROM user_modules WHERE user_id = ? AND url_trimmed = ?;", user_id, url_trimmed)
+        conn.execute("DELETE FROM user_modules WHERE user_id = ? AND url_trimmed = ?", (user_id, url_trimmed))
+    conn.commit()
+    conn.close()

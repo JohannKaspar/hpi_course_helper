@@ -125,8 +125,8 @@ def profile():
             selected_course = request.form.get("course_checkboxes")
         update_user_course(session["user_id"], selected_course)
     user_info = get_user_info_by_id(session["user_id"])  # TODO handle case when user does not exist
-    selected_course = user_info.get("course_abbreviation")
-    username = user_info.get("username")
+    selected_course = user_info["course_abbreviation"]
+    username = user_info["username"]
     return render_template("profile.html", courses_dict=courses_dict, username=username, selected_course=selected_course)
 
 
@@ -143,14 +143,14 @@ def search():
     # User reached route via GET (as by clicking a link or via redirect)
     if request.method == "GET":
         # query for all available module groups
-        module_groups = [row.get("module_group") for row in get_module_groups_by_user_id(session["user_id"])]
+        module_groups = [row["module_group"] for row in get_module_groups_by_user_id(session["user_id"])]
         return render_template("search.html", module_display_list=[], courses_dict=courses_dict, module_groups=module_groups)
     else:
         # Filters all modules by the selected module groups, credits and evap grade
         filtered_modules = get_filtered_modules(request)
         # query for all available module groups
         user_module_groups = get_user_module_groups(session["user_id"])
-        module_groups = [row.get("module_group") for row in user_module_groups]
+        module_groups = [row["module_group"] for row in user_module_groups]
         return render_template("search.html", module_display_list=filtered_modules, courses_dict=courses_dict, module_groups=module_groups)
 
 
@@ -161,9 +161,9 @@ def my_modules():
     # get all submodule groups of the user's course
     module_submodule_combinations = get_module_submodule_combinations(session["user_id"])
     
-    module_colspan = {row.get("module_group"): row.get("colspan") for row in module_submodule_combinations}
+    module_colspan = {row["module_group"]: row["colspan"] for row in module_submodule_combinations}
     # get the submodule group names
-    subheader = [item for row in module_submodule_combinations for item in row.get("module_group_subgroup_combinations").split(",")]
+    subheader = [item for row in module_submodule_combinations for item in row["module_group_subgroup_combinations"].split(",")]
     # get the user's modules
     modules_taken = get_modules_taken(session["user_id"])
     # TODO Handle case where a user enrolled in a module that is not offered for his/her course anymore, e.g. after changing the course
@@ -171,10 +171,10 @@ def my_modules():
     table_rows = []
     for module_taken in modules_taken:
         credit_cells = ["" for _ in range(len(subheader))]
-        module_title = module_taken.get("title")
-        module_link = "module/" + module_taken.get("url_trimmed")
-        for module_group_subgroup_combination in module_taken.get("module_group_subgroup_combinations").split(","):
-            credit_cells[subheader.index(module_group_subgroup_combination)] = module_taken.get("credits") or "X"
+        module_title = module_taken["title"]
+        module_link = "module/" + module_taken["url_trimmed"]
+        for module_group_subgroup_combination in module_taken["module_group_subgroup_combinations"].split(","):
+            credit_cells[subheader.index(module_group_subgroup_combination)] = module_taken["credits"] or "X"
         table_rows.append((module_title, module_link, credit_cells))
     return render_template("my_modules.html", module_colspan=module_colspan, subheader=subheader, table_rows=table_rows)
 
@@ -183,7 +183,9 @@ def my_modules():
 def module(url_trimmed):
     """Show detailed module information"""
     module_info = get_module_info(session["user_id"], url_trimmed)
-    if module_info.get("is_enrolled") == 1:
+    if not module_info:
+        return apology("Module not found", 404)
+    if module_info["is_enrolled"] == 1:
         module_info["checkbox_status"] = "checked"
     else:
         module_info["checkbox_status"] = None
