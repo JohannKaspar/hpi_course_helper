@@ -21,7 +21,7 @@ document.getElementById('enroll_checkbox').addEventListener('change', function()
     })
     .then(data => {
         // Define the message and class based on the checkbox state
-        var message = isChecked ? 'Checkbox is checked. Query completed successfully!' : 'Checkbox is unchecked. Query reverted successfully!';
+        var message = isChecked ? 'Enrolled successfully!' : 'Unrolled successfully!';
         var alertClass = isChecked ? 'alert-success' : 'alert-warning';
         
         // Get the alert text span and update its text

@@ -92,11 +92,11 @@ class CourseModule:
             self._evap_semester: str = evaluation_metrics.get("semester")
         else:
             # assign a random float between 1.0 and 3.2
-            self._evap_grade: float = round(random.uniform(1.0, 3.2), 1)
-            self._evap_semester: str = "WiSe 2025/26"
+            self._evap_grade: float = 1.0
+            self._evap_semester: str = "no evaluation found"
 
 
-    def get_subtopic_content(self):
+    def get_subtopic_content_old(self):
         sections = {
             "_description": "Beschreibung",
             "_prerequisites": "Voraussetzungen",
@@ -134,6 +134,35 @@ class CourseModule:
                 self.__dict__[key] = content.strip()
 
 
+    def get_subtopic_content(self):
+        sections = {
+            "_description": "Beschreibung",
+            "_prerequisites": "Voraussetzungen",
+            "_literature": "Literatur",
+            "_grading": "Leistungserfassung",
+            "_dates": "Termine"
+            }
+        
+        # Iterate over the sections and parse the content
+        for key, header in sections.items():
+            # Find the h2 tag with text "Beschreibung" or "Description"
+            # 't and' included to prevent error when t is None
+            h2 = self.soup.find('h2', string=header)
+
+            # If the h2 tag was found
+            if h2:
+                content = ""
+                # Iterate over the elements between the two h2 tags
+                for element in h2.next_siblings:
+                    # if the element is of type h2 or an element with only the text "Zurück" stop reading
+                    if element.name == "h2" or element.text == "Zurück":
+                        break
+                    content += str(element)
+
+                # Save the description
+                self.__dict__[key] = content.strip()
+        
+                
     def get_general_info(self):
         h2 = self.soup.find('h2', string="Allgemeine Information")
         # If the h2 tag was found
@@ -290,7 +319,8 @@ class CourseModule:
     
     @property
     def lecturers(self):
-        return ", ".join(self._lecturers)
+        #return ", ".join(self._lecturers)
+        return self._lecturers
     
     @property
     def evap_grade(self):

@@ -3,9 +3,10 @@ from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
-from helpers import courses_dict, apology, login_required, is_integer
+from helpers import courses_dict, apology, login_required
 from utils.filters import unique_list
 from db_queries import *
+from helpers import store_data_in_session
 
 # Configure application
 app = Flask(__name__)
@@ -19,15 +20,6 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 app.jinja_env.filters['unique_list'] = unique_list
-
-@app.after_request
-def after_request(response):
-    """Ensure responses aren't cached"""
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Expires"] = 0
-    response.headers["Pragma"] = "no-cache"
-    return response
-
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -105,10 +97,10 @@ def login():
 @app.route("/logout")
 def logout():
     """Log user out"""
-
+    
     # Forget any user_id
     session.clear()
-
+    
     # Redirect user to login form
     return redirect("/")
 
@@ -125,7 +117,7 @@ def profile():
             selected_course = request.form.get("course_checkboxes")
         update_user_course(session["user_id"], selected_course)
     user_info = get_user_info_by_id(session["user_id"])  # TODO handle case when user does not exist
-    selected_course = user_info["course_abbreviation"]
+    selected_course = user_info.get("course_abbreviation")
     username = user_info["username"]
     return render_template("profile.html", courses_dict=courses_dict, username=username, selected_course=selected_course)
 
@@ -144,14 +136,14 @@ def search():
     if request.method == "GET":
         # query for all available module groups
         module_groups = [row["module_group"] for row in get_module_groups_by_user_id(session["user_id"])]
-        return render_template("search.html", module_display_list=[], courses_dict=courses_dict, module_groups=module_groups)
+        return render_template("search.html", module_display_list=[], courses_dict=courses_dict, module_groups=module_groups, filter_settings=request.form) # TODO check behaviour of filter_settings
     else:
         # Filters all modules by the selected module groups, credits and evap grade
         filtered_modules = get_filtered_modules(request)
         # query for all available module groups
         user_module_groups = get_user_module_groups(session["user_id"])
         module_groups = [row["module_group"] for row in user_module_groups]
-        return render_template("search.html", module_display_list=filtered_modules, courses_dict=courses_dict, module_groups=module_groups)
+        return render_template("search.html", module_display_list=filtered_modules, courses_dict=courses_dict, module_groups=module_groups, filter_settings=request.form)
 
 
 @app.route("/", methods=["GET"])
@@ -193,6 +185,7 @@ def module(url_trimmed):
     
 
 @app.route('/handle_checkbox', methods=['POST'])
+@login_required
 def handle_checkbox():
     data = request.json
     try:

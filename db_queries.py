@@ -90,18 +90,20 @@ def get_filtered_modules(request):
     ]
     query_params = []
     if request.form.get("module_group_checkboxes"):
-        query_parts.append("AND")
+        query_parts.append("AND (")
         query_parts.append(" OR ".join(["course_modules.module_group = ?" for _ in request.form.getlist("module_group_checkboxes")]))
+        query_parts.append(")")
         query_params.extend(request.form.getlist("module_group_checkboxes"))
     if request.form.get("credits_checkboxes"):
-        query_parts.append("AND")
+        query_parts.append("AND (")
         query_parts.append(" OR ".join(["modules.credits = ?" for _ in request.form.getlist("credits_checkboxes")]))
+        query_parts.append(")")
         query_params.extend(request.form.getlist("credits_checkboxes"))
     if request.form.get("evap_max_result"):
-        query_parts.append("AND")
+        query_parts.append("AND (")
         query_parts.append("modules.evap_grade <= ?")
+        query_parts.append(")")
         query_params.append(request.form.get("evap_max_result"))
-    
     query_parts.append("GROUP BY modules.url_trimmed;")
     query = " ".join(query_parts)
     
@@ -188,7 +190,9 @@ def get_module_info(user_id, url_trimmed):
     conn = get_db_connection()
     module_info = conn.execute(
         """
-        SELECT modules.*, 
+        SELECT
+            modules.*, 
+            GROUP_CONCAT(lecturers.lecturer_name, ', ') AS lecturers,
             CASE WHEN um.enrolled_count > 0
                 THEN 1
                 ELSE 0
@@ -206,8 +210,12 @@ def get_module_info(user_id, url_trimmed):
             GROUP BY
                 url_trimmed
         ) AS um ON modules.url_trimmed = um.url_trimmed
+        JOIN module_lecturers ON modules.url_trimmed = module_lecturers.url_trimmed
+        JOIN lecturers ON module_lecturers.lecturer_id = lecturers.lecturer_id
         WHERE
-            modules.url_trimmed = ?;
+            modules.url_trimmed = ?
+        GROUP BY
+            modules.url_trimmed;
         """, (user_id, url_trimmed)
     ).fetchone()
     conn.close()
