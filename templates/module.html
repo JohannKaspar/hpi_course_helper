@@ -8,7 +8,7 @@
 <div id="module-info" class="container">
     <div id="queryAlert" class="alert alert-dismissible fade show" role="alert" style="display: none;">
         <span id="alertText">Query completed successfully!</span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <!-- <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button> -->
     </div>
     
     <div class="d-flex justify-content-between align-items-start mb-1">
@@ -58,7 +58,7 @@
     <div class="card mb-1" id="description-card">
         <h5 class="card-header">Course Description</h5>
         <div class="card-body">
-            <p>{{ module_info.get("module_description") }}</p>
+            {{ module_info.get("module_description")|safe }}
         </div>
     </div>
     <div class="card mb-1" id="link-card">

@@ -9,10 +9,22 @@ CREATE TABLE modules (
     website TEXT,
     title TEXT NOT NULL,
     credits INTEGER NOT NULL,
-    evap_grade INTEGER NOT NULL,
+    evap_grade FLOAT NOT NULL CHECK(evap_grade >= 1.0 AND evap_grade <= 6.0),
     evap_semester INTEGER NOT NULL,
-    module_description TEXT,
-    lecturers TEXT
+    module_description TEXT
+);
+
+CREATE TABLE lecturers (
+    lecturer_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    lecturer_name TEXT NOT NULL
+);
+
+CREATE TABLE module_lecturers (
+    url_trimmed TEXT NOT NULL,
+    lecturer_id INTEGER NOT NULL,
+    PRIMARY KEY (url_trimmed, lecturer_id),
+    FOREIGN KEY (url_trimmed) REFERENCES modules(url_trimmed),
+    FOREIGN KEY (lecturer_id) REFERENCES lecturers(lecturer_id)
 );
 
 CREATE TABLE course_modules (

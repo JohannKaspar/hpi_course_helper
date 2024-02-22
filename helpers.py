@@ -10,6 +10,10 @@ courses_dict = {
     "Software Systems Engineering MA": "sse_master",
 }
 
+
+def store_data_in_session(key, data):
+    session[key] = data
+    
 def apology(message, code=400):
     """Render message as an apology to user."""
     def escape(s):

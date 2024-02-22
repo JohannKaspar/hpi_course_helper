@@ -11,51 +11,40 @@
         <div class="card-body">
             <form action="/search" method="post">
                 <div class="row">
-                    <!-- <div class="col-6 col-sm-6 col-md-4">
-                        <h5>Study</h5>
-                        <div id="course_selection" class="result-filter-list">
-                            {% for course, abbreviation in courses_dict.items() %}
-                                <div>
-                                    <input type="checkbox" id="{{ abbreviation }}" name="course_checkboxes" value="{{ abbreviation }}">
-                                    <label for="{{ abbreviation }}"> {{ course }} </label><br>
-                                </div>
-                            {% endfor %}
-                        </div>  
-                    </div> -->
                     <div class="col-6 col-sm-4 col-md">
                         <h5>Module group</h5>
                         <div id="module_group_selection" class="result-filter-list">
                             {% for module in module_groups %}
-                                <input type="checkbox" id="{{ module }}" name="module_group_checkboxes" value="{{ module }}" checked>
+                                <input type="checkbox" id="{{ module }}" name="module_group_checkboxes" value="{{ module }}" {% if not filter_settings or module in filter_settings.getlist("module_group_checkboxes") %} checked {% endif %}>
                                 <label for="{{ module }}"> {{ module.upper() }} </label><br>
                             {% endfor %}
                         </div>
                     </div>
                     <div class="col-6 col-sm-4 col-md">
                         <h5>Credits</h5>
-                        <input type="checkbox" id="3" name="credits_checkboxes" value="3" checked>
+                        <input type="checkbox" id="3" name="credits_checkboxes" value="3" {% if not filter_settings or "3" in filter_settings.getlist("credits_checkboxes") %} checked {% endif %}>
                         <label for="3"> 3 </label><br>
-                        <input type="checkbox" id="6" name="credits_checkboxes" value="6" checked>
+                        <input type="checkbox" id="6" name="credits_checkboxes" value="6" {% if not filter_settings or "6" in filter_settings.getlist("credits_checkboxes") %} checked {% endif %}>
                         <label for="6"> 6 </label><br>
-                        <input type="checkbox" id=">6" name="credits_checkboxes" value=">6" checked>
+                        <input type="checkbox" id=">6" name="credits_checkboxes" value=">6" {% if not filter_settings or ">6" in filter_settings.getlist("credits_checkboxes") %} checked {% endif %}>
                         <label for=">6"> &gt 6 </label><br>
                     </div>
                     <div class="col-6 col-sm-4 col-md">
                         <h5>EvaP results</h5>
-                        <input type="radio" id="evap_1.5" name="evap_max_result" value="1.5">
+                        <input type="radio" id="evap_1.5" name="evap_max_result" value="1.5" {% if filter_settings and "1.5" in filter_settings.getlist("evap_max_result") %} checked {% endif %}>
                         <label for="evap_1.5"> &lt 1.5 </label><br>
-                        <input type="radio" id="evap_2" name="evap_max_result" value="2">
+                        <input type="radio" id="evap_2" name="evap_max_result" value="2" {% if filter_settings and "2" in filter_settings.getlist("evap_max_result") %} checked {% endif %}>
                         <label for="evap_2"> &lt 2 </label><br>
-                        <input type="radio" id="evap_3" name="evap_max_result" value="3">
+                        <input type="radio" id="evap_3" name="evap_max_result" value="3" {% if filter_settings and "3" in filter_settings.getlist("evap_max_result") %} checked {% endif %}>
                         <label for="evap_3"> &lt 3 </label><br>
-                        <input type="radio" id="evap_6" name="evap_max_result" value="6" checked>
+                        <input type="radio" id="evap_6" name="evap_max_result" value="6" {% if not filter_settings or "6" in filter_settings.getlist("evap_max_result") %} checked {% endif %}>
                         <label for="evap_6"> irrelevant </label><br>
                     </div>
                     <div class="col-6 col-sm-4 col-md">
                             <h5>Irrelevant modules</h5>
-                        <input type="checkbox" id="exclude_taken" name="exclude_taken" value="exclude_taken">
+                        <input type="checkbox" id="exclude_taken" name="exclude_taken" value="exclude_taken" {% if filter_settings and "exclude_taken" in filter_settings.getlist("exclude_taken") %} checked {% endif %}>
                         <label for="exclude_taken"> Exclude taken modules </label><br>
-                        <input type="checkbox" id="include_relevant_only" name="include_relevant_only" value="include_relevant_only">
+                        <input type="checkbox" id="include_relevant_only" name="include_relevant_only" value="include_relevant_only" {% if filter_settings and "include_relevant_only" in filter_settings.getlist("include_relevant_only") %} checked {% endif %}>
                         <label for="include_relevant_only"> Include necessary modules only </label><br>
                     </div>
                     <div class="col-6 col-sm-4 col-md d-flex justify-content-center align-items-start">
@@ -85,7 +74,8 @@
                     </div>
                 </a>
             </div>
-        {% endfor %} 
+        {% endfor %}
     {% endif %}
 </div>
 {% endblock %}
+
