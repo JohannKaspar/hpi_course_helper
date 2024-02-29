@@ -139,7 +139,7 @@ def search():
         return render_template("search.html", module_display_list=[], courses_dict=courses_dict, module_groups=module_groups, filter_settings=request.form) # TODO check behaviour of filter_settings
     else:
         # Filters all modules by the selected module groups, credits and evap grade
-        filtered_modules = get_filtered_modules(request)
+        filtered_modules = get_filtered_modules(request, session["user_id"])
         # query for all available module groups
         user_module_groups = get_user_module_groups(session["user_id"])
         module_groups = [row["module_group"] for row in user_module_groups]

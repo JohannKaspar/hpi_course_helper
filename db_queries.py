@@ -76,7 +76,7 @@ def get_module_groups_by_user_id(user_id):
 
 # Retrieves all modules that match the given filters
 @to_dict_decorator
-def get_filtered_modules(request):
+def get_filtered_modules(request, user_id):
     query_parts = [
         """SELECT
             modules.*,
@@ -104,6 +104,12 @@ def get_filtered_modules(request):
         query_parts.append("modules.evap_grade <= ?")
         query_parts.append(")")
         query_params.append(request.form.get("evap_max_result"))
+    # if exclude_taken, exclude modules that the user has already taken
+    if request.form.get("exclude_taken"):
+        query_parts.append("AND modules.url_trimmed NOT IN (")
+        query_parts.append("SELECT url_trimmed FROM user_modules WHERE user_id = ?")
+        query_parts.append(")")
+        query_params.append(user_id)
     query_parts.append("GROUP BY modules.url_trimmed;")
     query = " ".join(query_parts)
     
