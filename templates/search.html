@@ -44,8 +44,6 @@
                             <h5>Irrelevant modules</h5>
                         <input type="checkbox" id="exclude_taken" name="exclude_taken" value="exclude_taken" {% if filter_settings and "exclude_taken" in filter_settings.getlist("exclude_taken") %} checked {% endif %}>
                         <label for="exclude_taken"> Exclude taken modules </label><br>
-                        <input type="checkbox" id="include_relevant_only" name="include_relevant_only" value="include_relevant_only" {% if filter_settings and "include_relevant_only" in filter_settings.getlist("include_relevant_only") %} checked {% endif %}>
-                        <label for="include_relevant_only"> Include necessary modules only </label><br>
                     </div>
                     <div class="col-6 col-sm-4 col-md d-flex justify-content-center align-items-start">
                         <button class="btn btn-dark w-100" type="submit">Find</button>
